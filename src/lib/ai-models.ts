@@ -23,6 +23,23 @@ export const GOOGLE_AI_MODELS = {
     description: "Used for audio transcription, text correction, and topic extraction"
   },
 
+  // CONTENT ANALYSIS & INSIGHTS
+  // Choose ONE model for analyzing content and generating insights
+  ANALYSIS: {
+    // Latest 2.5 models (RECOMMENDED)
+    model: 'gemini-2.5-flash',          // ✅ Best balance of speed and capability
+    // model: 'gemini-2.5-flash-lite',  // ⚡ Fastest for simple analysis
+    
+    // Powerful models (best analytical understanding)
+    // model: 'gemini-2.5-pro',         // 🧠 Best analytical reasoning
+    
+    // Legacy 1.5 models
+    // model: 'gemini-1.5-flash',       // 🔄 Previous generation
+    // model: 'gemini-1.5-pro',         // 🔄 Previous generation
+    
+    description: "Used for content analysis, insights generation, and follow-up questions"
+  },
+
   // MOOD DETECTION & EMOTIONAL ANALYSIS  
   // Choose ONE model for analyzing emotions and mood
   MOOD_ANALYSIS: {
