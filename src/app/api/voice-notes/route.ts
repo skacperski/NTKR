@@ -243,7 +243,11 @@ PAMIĘTAJ: Wszystkie tagi i tematy po polsku!`
       const today = new Date().toISOString().split('T')[0]
       console.log(`🔄 Auto-regenerating daily summary for ${today}`)
       
-      const summaryResponse = await fetch(`${process.env.VERCEL_URL || 'http://localhost:3000'}/api/summaries/daily/generate`, {
+      const baseUrl = process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}` 
+        : 'http://localhost:3000'
+      
+      const summaryResponse = await fetch(`${baseUrl}/api/summaries/daily/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date: today })
