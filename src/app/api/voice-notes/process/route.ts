@@ -116,14 +116,14 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: 'system',
-          content: getPrompt('ANALYSIS', {
+          content: getPrompt('ANALYSIS', transcriptionResult.object.corrected_text, {
             date: note.recorded_date,
             location: note.location
           })
         },
         {
           role: 'user',
-          content: `Przeanalizuj tę transkrypcję: ${transcriptionResult.object.corrected_text}`
+          content: transcriptionResult.object.corrected_text
         }
       ]
     })
@@ -140,14 +140,11 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: 'system',
-          content: getPrompt('MOOD_ANALYSIS', {
-            date: note.recorded_date,
-            location: note.location
-          })
+          content: getPrompt('MOOD_ANALYSIS', transcriptionResult.object.corrected_text)
         },
         {
           role: 'user',
-          content: `Przeanalizuj nastrój: ${transcriptionResult.object.corrected_text}`
+          content: transcriptionResult.object.corrected_text
         }
       ]
     })

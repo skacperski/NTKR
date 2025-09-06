@@ -23,6 +23,7 @@ interface VoiceNote {
   emotional_tags?: string[]
   main_topics?: string[]
   importance_level?: number
+  processing_status?: 'uploading' | 'processing' | 'transcribing' | 'analyzing' | 'completed' | 'error'
 }
 
 interface CollapsibleNoteCardProps {
@@ -33,6 +34,27 @@ interface CollapsibleNoteCardProps {
 
 export function CollapsibleNoteCard({ note, isExpanded = false, isNewest = false }: CollapsibleNoteCardProps) {
   const [isOpen, setIsOpen] = useState(isExpanded || isNewest)
+
+  // Funkcja do określenia statusu i kolorów
+  const getStatusInfo = (status?: string) => {
+    switch (status) {
+      case 'processing':
+        return { text: 'Przetwarzanie...', color: 'text-blue-600', bgColor: 'bg-blue-100', icon: '🔄' }
+      case 'transcribing':
+        return { text: 'Transkrypcja...', color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: '📝' }
+      case 'analyzing':
+        return { text: 'Analiza...', color: 'text-purple-600', bgColor: 'bg-purple-100', icon: '🧠' }
+      case 'completed':
+        return { text: 'Gotowe', color: 'text-green-600', bgColor: 'bg-green-100', icon: '✅' }
+      case 'error':
+        return { text: 'Błąd', color: 'text-red-600', bgColor: 'bg-red-100', icon: '❌' }
+      default:
+        return { text: 'Gotowe', color: 'text-green-600', bgColor: 'bg-green-100', icon: '✅' }
+    }
+  }
+
+  const statusInfo = getStatusInfo(note.processing_status)
+  const isProcessing = note.processing_status && note.processing_status !== 'completed'
 
   return (
     <div className={cn(
@@ -54,6 +76,17 @@ export function CollapsibleNoteCard({ note, isExpanded = false, isNewest = false
               })}
               {note.location && ` • ${note.location}`}
             </span>
+            
+            {/* Status Indicator */}
+            <span className={cn(
+              "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
+              statusInfo.color,
+              statusInfo.bgColor
+            )}>
+              <span className={isProcessing ? "animate-pulse" : ""}>{statusInfo.icon}</span>
+              {statusInfo.text}
+            </span>
+            
             {isNewest && (
               <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 font-bold">
                 NEWEST
@@ -103,9 +136,16 @@ export function CollapsibleNoteCard({ note, isExpanded = false, isNewest = false
               <h4 className="font-medium text-gray-900 mb-2">
                 📝 Transkrypcja:
               </h4>
-              <p className="text-sm text-gray-700 leading-relaxed">
-                {note.transcription}
-              </p>
+              <div className="text-sm text-gray-700 leading-relaxed">
+                {isProcessing && note.transcription === 'Przetwarzanie...' ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                    <span className="italic">Przetwarzanie audio...</span>
+                  </div>
+                ) : (
+                  <p>{note.transcription}</p>
+                )}
+              </div>
             </div>
 
             {/* Podsumowanie - always open */}
@@ -113,9 +153,16 @@ export function CollapsibleNoteCard({ note, isExpanded = false, isNewest = false
               <h4 className="font-medium text-gray-900 mb-2">
                 📋 Podsumowanie:
               </h4>
-              <p className="text-sm text-gray-700 leading-relaxed">
-                {note.summary}
-              </p>
+              <div className="text-sm text-gray-700 leading-relaxed">
+                {isProcessing && note.summary === 'Analizuję zawartość...' ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin h-4 w-4 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                    <span className="italic">Analizuję zawartość...</span>
+                  </div>
+                ) : (
+                  <p>{note.summary}</p>
+                )}
+              </div>
             </div>
           </div>
 

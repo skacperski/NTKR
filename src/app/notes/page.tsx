@@ -1,6 +1,6 @@
-import React from 'react'
-import { createClient } from '@supabase/supabase-js'
-import Link from 'next/link'
+'use client'
+
+import React, { useState, useEffect, useCallback } from 'react'
 import { DayGroup } from '@/components/ui/day-group'
 import { CollapsibleNoteCard } from '@/components/ui/collapsible-note-card'
 import { RecordingStatusDisplay } from '@/components/ui/recording-status'
@@ -24,61 +24,22 @@ interface VoiceNote {
   emotional_tags?: string[]
   main_topics?: string[]
   importance_level?: number
+  processing_status?: 'uploading' | 'processing' | 'transcribing' | 'analyzing' | 'completed' | 'error'
 }
 
-async function getVoiceNotes(): Promise<VoiceNote[]> {
+// Client-side function to fetch notes
+async function fetchVoiceNotes(): Promise<VoiceNote[]> {
   try {
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NTKR_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NTKR_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase credentials missing')
-    }
-
-    console.log(`🔗 /notes connecting to Supabase: ${supabaseUrl.substring(0, 30)}...`)
-
-    const supabase = createClient(supabaseUrl, supabaseKey)
-
-    const { data, error } = await supabase
-      .from('voice_notes')
-      .select('*')
-      .order('created_at', { ascending: false })
-    
-    if (error) {
-      throw new Error(`Database error: ${error.message}`)
-    }
-    
-    console.log(`✅ Loaded ${data?.length || 0} voice notes`)
-    
-    // Parse JSONB fields safely
-    const processedNotes = (data || []).map((note: any) => {
-      const safeJsonParse = (jsonData: any, fallback: any[] = []) => {
-        // Supabase returns JSONB as parsed objects already
-        if (!jsonData) return fallback
-        if (Array.isArray(jsonData)) return jsonData
-        if (typeof jsonData === 'object' && jsonData !== null) return jsonData
-        if (typeof jsonData === 'string') {
-          try {
-            return JSON.parse(jsonData)
-          } catch (e) {
-            return fallback
-          }
-        }
-        return fallback
-      }
-      
-      return {
-        ...note,
-        topics: safeJsonParse(note.topics, []),
-        follow_up_questions: safeJsonParse(note.follow_up_questions, []),
-        action_items: safeJsonParse(note.action_items, []),
-        insights: safeJsonParse(note.insights, []),
-        emotional_tags: safeJsonParse(note.emotional_tags, []),
-        main_topics: safeJsonParse(note.main_topics, [])
-      }
+    const response = await fetch('/api/voice-notes/list', {
+      cache: 'no-store' // Always fetch fresh data
     })
-    
-    return processedNotes
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+    return result.data || []
 
   } catch (error) {
     console.error('❌ Error loading voice notes:', error)
@@ -98,8 +59,73 @@ function groupNotesByDay(notes: VoiceNote[]): Record<string, VoiceNote[]> {
 }
 
 
-export default async function NotesPage() {
-  const notes = await getVoiceNotes()
+export default function NotesPage() {
+  const [notes, setNotes] = useState<VoiceNote[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [lastRefresh, setLastRefresh] = useState<number>(Date.now())
+
+  // Funkcja do ładowania notatek
+  const loadNotes = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const fetchedNotes = await fetchVoiceNotes()
+      setNotes(fetchedNotes)
+      setLastRefresh(Date.now())
+    } catch (error) {
+      console.error('❌ Failed to load notes:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  // Ładuj notatki przy pierwszym renderze
+  useEffect(() => {
+    loadNotes()
+  }, [loadNotes])
+
+  // Nasłuchuj na nowe notatki
+  useEffect(() => {
+    const handleNoteAdded = () => {
+      console.log('🔔 Note added event received - refreshing list')
+      loadNotes()
+    }
+
+    const handleNoteDeleted = () => {
+      console.log('🔔 Note deleted event received - refreshing list')
+      loadNotes()
+    }
+
+    window.addEventListener('noteAdded', handleNoteAdded)
+    window.addEventListener('noteDeleted', handleNoteDeleted)
+
+    return () => {
+      window.removeEventListener('noteAdded', handleNoteAdded)
+      window.removeEventListener('noteDeleted', handleNoteDeleted)
+    }
+  }, [loadNotes])
+
+  // Auto-refresh co 5 sekund jeśli są notatki w trakcie przetwarzania
+  useEffect(() => {
+    const hasProcessingNotes = notes.some(note => 
+      note.processing_status && note.processing_status !== 'completed'
+    )
+
+    if (hasProcessingNotes) {
+      const interval = setInterval(() => {
+        console.log('🔄 Auto-refreshing notes (processing detected)')
+        loadNotes()
+      }, 5000) // Co 5 sekund
+
+      return () => clearInterval(interval)
+    }
+  }, [notes, loadNotes])
+
+  // Funkcja do ręcznego odświeżenia
+  const handleRefresh = () => {
+    console.log('🔄 Manual refresh triggered')
+    loadNotes()
+  }
+
   const groupedNotes = groupNotesByDay(notes)
   const today = new Date().toISOString().split('T')[0]
 
@@ -111,10 +137,25 @@ export default async function NotesPage() {
         
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold">VOICE NOTES ({notes.length})</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Personal voice journal with AI insights
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">VOICE NOTES ({notes.length})</h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Personal voice journal with AI insights
+                {isLoading && <span className="ml-2">• Ładowanie...</span>}
+              </p>
+            </div>
+            
+            {/* Refresh Button */}
+            <button
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className={isLoading ? "animate-spin" : ""}>🔄</span>
+              Odśwież
+            </button>
+          </div>
         </div>
 
         {/* Recording Status */}

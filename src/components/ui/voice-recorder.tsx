@@ -84,6 +84,9 @@ export function VoiceRecorder() {
       
       recordingStore.setCompleted()
       
+      // Wyślij event żeby odświeżyć listę notatek
+      window.dispatchEvent(new CustomEvent('noteAdded'))
+      
     } catch (error) {
       recordingStore.reset()
       // Error is already handled by the hook

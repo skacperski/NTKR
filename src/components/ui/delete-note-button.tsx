@@ -32,8 +32,11 @@ export function DeleteNoteButton({ noteId, noteTitle, onSuccess }: DeleteNoteBut
       console.log(`✅ Note ${noteId} deleted successfully`)
       onSuccess?.()
       
-      // Refresh page to update the list
-      window.location.reload()
+      // Wyślij event żeby odświeżyć listę notatek
+      window.dispatchEvent(new CustomEvent('noteDeleted'))
+      
+      // Zamknij confirmation dialog
+      setShowConfirm(false)
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
