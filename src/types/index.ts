@@ -18,6 +18,7 @@ export interface VoiceNote {
   importance_level?: number;
   audio_url?: string;
   location?: string;
+  processing_status?: 'uploading' | 'processing' | 'transcribing' | 'analyzing' | 'completed' | 'error';
 }
 
 export interface DailySummary {
