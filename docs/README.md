@@ -5,6 +5,7 @@ Simplified documentation for the NTKR (Personal Voice Journal) project.
 ## 📁 What's Here
 
 - **`PRD.md`** - Product Requirements Document (main specification)
+- **`E2EE-ARCHITECTURE.md`** - End-to-End Encryption & Smart Search Architecture (future implementation)
 
 ## 🎯 Quick Overview
 
